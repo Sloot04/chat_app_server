@@ -6,21 +6,28 @@ const { usuarioConectado, usuarioDesconectado } = require('../controllers/socket
 //Mensajes de Sockets
 io.on('connection', (client) => {
 
-    console.log('Cliente conectado');
+    const [valido, uid] = comprobarJWT(client.handshake.headers['x-token']);
 
     // Verifica la autenticación
-    const [valido, uid] = comprobarJWT(client.handshake.headers['x-token']);
+    if (!valido) { return client.disconnect(); }
 
     //Cliente autenticado
     usuarioConectado(uid);
 
+    //ingresar al usuario a una sala en particular
+    client.join(uid);
 
-    if (!valido) { return client.disconnect(); }
+    //Escuchar del cliente el mensaje-personal
+    client.on('mensaje-personal', (payload) => {
+        console.log(payload);
+        io.to(payload.para).emit('mensaje-personal', payload);
+    });
+
+
 
     console.log('cliente autenticado');
 
     client.on('disconnect', () => {
-        console.log('Cliente desconectado');
         usuarioDesconectado(uid);
     });
 
